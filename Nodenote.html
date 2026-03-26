@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Современные Ноды</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* --- ТЕМЫ (СТРОГИЙ ЧЕРНО-БЕЛЫЙ МИНИМАЛИЗМ) --- */
+        :root[data-theme="dark"] {
+            --bg-color: #0d0d0d;
+            --grid-main: rgba(255, 255, 255, 0.15);
+            --grid-sub: rgba(255, 255, 255, 0.05);
+            --node-bg: #1a1a1a;
+            --node-border: #333333;
+            --node-shadow: rgba(0, 0, 0, 0.8);
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --wire-color: #ffffff;
+            --wire-hover: #aaaaaa;
+            --socket-color: #ffffff;
+            --socket-border: #1a1a1a;
+            --panel-bg: rgba(26, 26, 26, 0.85);
+            --panel-border: #333333;
+            --selection: #ffffff;
+            --handle-color: #666666;
+            --handle-hover: #ffffff;
+            --input-bg: #0d0d0d;
+            --btn-hover: #333333;
+        }
+
+        :root[data-theme="light"] {
+            --bg-color: #f0f0f0;
+            --grid-main: rgba(0, 0, 0, 0.15);
+            --grid-sub: rgba(0, 0, 0, 0.05);
+            --node-bg: #ffffff;
+            --node-border: #cccccc;
+            --node-shadow: rgba(0, 0, 0, 0.1);
+            --text-main: #000000;
+            --text-muted: #666666;
+            --wire-color: #000000;
+            --wire-hover: #666666;
+            --socket-color: #000000;
+            --socket-border: #ffffff;
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --panel-border: #cccccc;
+            --selection: #000000;
+            --handle-color: #999999;
+            --handle-hover: #000000;
+            --input-bg: #f9f9f9;
+            --btn-hover: #e0e0e0;
+        }
+
+        /* --- БАЗОВЫЕ НАСТРОЙКИ --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            /* ЖЕСТКИЙ ЗАПРЕТ СИСТЕМНЫХ ЖЕСТОВ НА МОБИЛКАХ */
+            user-select: none; -webkit-user-select: none;
+            touch-action: none; 
+            overscroll-behavior: none;
+            transition: background-color 0.2s;
+        }
+
+        /* --- ВЕРХНЯЯ ПАНЕЛЬ --- */
+        #top-panel {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--panel-border); border-radius: 12px;
+            padding: 6px; display: flex; gap: 4px; z-index: 1000;
+            box-shadow: 0 4px 24px var(--node-shadow);
+        }
+
+        .panel-btn {
+            background: transparent; border: none;
+            color: var(--text-main); border-radius: 8px; padding: 8px 12px;
+            cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px;
+        }
+        .panel-btn:hover { background: var(--btn-hover); }
+        .panel-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        /* --- СЕТКА И ХОЛСТ --- */
+        #grid-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        
+        #workspace {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; transform-origin: 0 0; pointer-events: none;
+        }
+
+        /* --- ЛИНИИ (SVG) --- */
+        #svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+        
+        .noodle {
+            fill: none; stroke: var(--wire-color); stroke-width: 3px;
+            pointer-events: auto; cursor: pointer; transition: stroke-width 0.1s, stroke 0.1s;
+        }
+        .noodle:hover { stroke-width: 6px; stroke: var(--wire-hover); }
+        .noodle-temp { fill: none; stroke: var(--wire-color); stroke-width: 3px; stroke-dasharray: 6 6; pointer-events: none; opacity: 0.5; }
+
+        /* --- НОДЫ --- */
+        #nodes-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        .node {
+            position: absolute; background-color: var(--node-bg);
+            border: 1px solid var(--node-border); border-radius: 16px;
+            min-width: 280px; box-shadow: 0 12px 32px var(--node-shadow);
+            pointer-events: auto; display: flex; flex-direction: column;
+            will-change: left, top;
+            transition: box-shadow 0.2s;
+        }
+        .node.selected { box-shadow: 0 0 0 2px var(--selection), 0 12px 32px var(--node-shadow); z-index: 100; }
+
+        .node-header {
+            padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+            cursor: grab; border-radius: 16px 16px 0 0;
+            /* 100% БЛОКИРОВКА ЖЕСТОВ НА ШАПКЕ */
+            touch-action: none; 
+            background-color: transparent;
+        }
+        .node-header:active { cursor: grabbing; }
+
+        .drag-icon {
+            color: var(--handle-color); display: flex; align-items: center; justify-content: center;
+            pointer-events: none; /* Клик проходит сквозь иконку на header */
+        }
+        .drag-icon svg { width: 14px; height: 14px; fill: currentColor; }
+
+        .node-title {
+            background: transparent; border: none; color: var(--text-main);
+            font-weight: 600; font-size: 15px; outline: none; flex-grow: 1;
+            pointer-events: auto; user-select: text; -webkit-user-select: text;
+            font-family: 'Inter', sans-serif;
+            touch-action: auto; /* Разрешаем клик в поле ввода */
+        }
+
+        .node-body { padding: 0 16px 16px 16px; position: relative; }
+
+        .node-textarea {
+            width: 100%; min-height: 100px; background-color: var(--input-bg);
+            color: var(--text-main); border: 1px solid var(--node-border);
+            border-radius: 8px; padding: 12px; font-size: 14px; font-family: 'Inter', sans-serif;
+            resize: vertical; outline: none; pointer-events: auto;
+            user-select: text; -webkit-user-select: text; transition: border-color 0.2s;
+            line-height: 1.5; touch-action: auto;
+        }
+        .node-textarea:focus { border-color: var(--selection); }
+
+        /* --- СОКЕТЫ --- */
+        .socket-hitbox {
+            position: absolute; top: 12px; width: 44px; height: 44px; /* Увеличена зона нажатия для пальцев */
+            display: flex; align-items: center; justify-content: center;
+            cursor: crosshair; pointer-events: auto; z-index: 10;
+            touch-action: none; /* Блокируем скролл при рисовании линии */
+        }
+        .socket-hitbox.in { left: -22px; }
+        .socket-hitbox.out { right: -22px; }
+
+        .socket {
+            width: 12px; height: 12px; background-color: var(--socket-color);
+            border: 2px solid var(--socket-border); border-radius: 50%;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .socket-hitbox:hover .socket { transform: scale(1.8); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--node-border); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- Панель управления -->
+    <div id="top-panel">
+        <button class="panel-btn" id="btn-focus" title="Найти все заметки">
+            <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+            Фокус
+        </button>
+        <button class="panel-btn" id="btn-theme" title="Переключить тему">
+            <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+            Тема
+        </button>
+        <button class="panel-btn" id="btn-export" title="Сохранить файл">
+            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Экспорт JSON
+        </button>
+    </div>
+
+    <!-- Адаптивная сетка -->
+    <canvas id="grid-canvas"></canvas>
+
+    <!-- Холст для нод и связей -->
+    <div id="workspace">
+        <svg id="svg-layer"></svg>
+        <div id="nodes-container"></div>
+    </div>
+
+    <script>
+        // --- СОСТОЯНИЕ ---
+        const state = {
+            nodes: {},
+            edges: [],
+            transform: { x: window.innerWidth / 2, y: window.innerHeight / 2, scale: 1 },
+            selectedNodeId: null,
+            zIndexCounter: 10
+        };
+
+        const workspace = document.getElementById('workspace');
+        const nodesContainer = document.getElementById('nodes-container');
+        const svgLayer = document.getElementById('svg-layer');
+        const gridCanvas = document.getElementById('grid-canvas');
+        const gridCtx = gridCanvas.getContext('2d');
+
+        const resizeObserver = new ResizeObserver(() => renderEdges());
+        const genId = () => 'n_' + Math.random().toString(36).substr(2, 9);
+        const screenToWorld = (x, y) => ({
+            x: (x - state.transform.x) / state.transform.scale,
+            y: (y - state.transform.y) / state.transform.scale
+        });
+
+        // --- БЕСКОНЕЧНАЯ ЛОГАРИФМИЧЕСКАЯ СЕТКА ---
+        function drawGrid() {
+            gridCanvas.width = window.innerWidth;
+            gridCanvas.height = window.innerHeight;
+            
+            const style = getComputedStyle(document.body);
+            gridCtx.fillStyle = style.getPropertyValue('--bg-color').trim();
+            gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+            const scale = state.transform.scale;
+            const tx = state.transform.x;
+            const ty = state.transform.y;
+
+            const level = Math.floor(Math.log(scale) / Math.log(5));
+            const worldStep = 100 / Math.pow(5, level);
+            const screenStep = worldStep * scale; 
+            const screenStepLarge = screenStep * 5; 
+
+            gridCtx.lineWidth = 1;
+
+            gridCtx.strokeStyle = style.getPropertyValue('--grid-sub').trim();
+            gridCtx.beginPath();
+            for (let x = tx % screenStep; x < gridCanvas.width; x += screenStep) { gridCtx.moveTo(x, 0); gridCtx.lineTo(x, gridCanvas.height); }
+            for (let y = ty % screenStep; y < gridCanvas.height; y += screenStep) { gridCtx.moveTo(0, y); gridCtx.lineTo(gridCanvas.width, y); }
+            gridCtx.stroke();
+
+            gridCtx.strokeStyle = style.getPropertyValue('--grid-main').trim();
+            gridCtx.beginPath();
+            for (let x = tx % screenStepLarge; x < gridCanvas.width; x += screenStepLarge) { gridCtx.moveTo(x, 0); gridCtx.lineTo(x, gridCanvas.height); }
+            for (let y = ty % screenStepLarge; y < gridCanvas.height; y += screenStepLarge) { gridCtx.moveTo(0, y); gridCtx.lineTo(gridCanvas.width, y); }
+            gridCtx.stroke();
+        }
+
+        function updateTransform() {
+            workspace.style.transform = `translate(${state.transform.x}px, ${state.transform.y}px) scale(${state.transform.scale})`;
+            drawGrid();
+        }
+
+        // --- ЛОГИКА НОД ---
+        function selectNode(id) {
+            if (state.selectedNodeId && state.nodes[state.selectedNodeId]) {
+                state.nodes[state.selectedNodeId].el.classList.remove('selected');
+            }
+            state.selectedNodeId = id;
+            if (id) {
+                const node = state.nodes[id];
+                node.el.classList.add('selected');
+                state.zIndexCounter++;
+                node.el.style.zIndex = state.zIndexCounter;
+            }
+        }
+
+        function createNode(worldX, worldY) {
+            const id = genId();
+            const nodeEl = document.createElement('div');
+            nodeEl.className = 'node';
+            nodeEl.id = id;
+            nodeEl.style.left = `${worldX}px`;
+            nodeEl.style.top = `${worldY}px`;
+            state.zIndexCounter++;
+            nodeEl.style.zIndex = state.zIndexCounter;
+
+            const gripIcon = `<svg viewBox="0 0 24 24"><circle cx="8" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="8" cy="18" r="2"/><circle cx="16" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="16" cy="18" r="2"/></svg>`;
+
+            nodeEl.innerHTML = `
+                <div class="node-header">
+                    <div class="drag-icon">${gripIcon}</div>
+                    <input type="text" class="node-title" value="Заметка">
+                </div>
+                <div class="node-body">
+                    <div class="socket-hitbox in" data-node="${id}" data-type="in"><div class="socket"></div></div>
+                    <textarea class="node-textarea" placeholder="Дважды тапните по фону..."></textarea>
+                    <div class="socket-hitbox out" data-node="${id}" data-type="out"><div class="socket"></div></div>
+                </div>
+            `;
+
+            nodesContainer.appendChild(nodeEl);
+            resizeObserver.observe(nodeEl);
+            state.nodes[id] = { el: nodeEl, x: worldX, y: worldY };
+
+            // ИЗОЛИРОВАННАЯ ЛОГИКА ПЕРЕТАСКИВАНИЯ НОДЫ
+            const header = nodeEl.querySelector('.node-header');
+            header.addEventListener('pointerdown', (e) => {
+                // Если кликнули в текстовое поле - не тащим
+                if (e.target.tagName === 'INPUT') return; 
+
+                e.preventDefault(); // Останавливаем скролл телефона
+                e.stopPropagation(); // Останавливаем панорамирование фона
+
+                selectNode(id);
+                const node = state.nodes[id];
+                
+                // Фиксируем разницу между кликом и левым верхним углом ноды
+                const startWorld = screenToWorld(e.clientX, e.clientY);
+                const offsetX = startWorld.x - node.x;
+                const offsetY = startWorld.y - node.y;
+
+                // Функция движения (локальная для этого перетаскивания)
+                const onMove = (moveEvent) => {
+                    const currentWorld = screenToWorld(moveEvent.clientX, moveEvent.clientY);
+                    node.x = currentWorld.x - offsetX;
+                    node.y = currentWorld.y - offsetY;
+                    node.el.style.left = `${node.x}px`;
+                    node.el.style.top = `${node.y}px`;
+                    renderEdges();
+                };
+
+                // Функция отпускания
+                const onUp = () => {
+                    document.removeEventListener('pointermove', onMove);
+                    document.removeEventListener('pointerup', onUp);
+                    document.removeEventListener('pointercancel', onUp);
+                };
+
+                // Вешаем слушатели на документ, чтобы не терять курсор/палец
+                document.addEventListener('pointermove', onMove);
+                document.addEventListener('pointerup', onUp);
+                document.addEventListener('pointercancel', onUp);
+            });
+
+            // ИЗОЛИРОВАННАЯ ЛОГИКА РИСОВАНИЯ СВЯЗЕЙ
+            nodeEl.querySelectorAll('.socket-hitbox').forEach(sock => {
+                sock.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const startNodeId = sock.dataset.node;
+                    const startType = sock.dataset.type;
+                    
+                    let tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    tempPath.setAttribute('class', 'noodle-temp');
+                    svgLayer.appendChild(tempPath);
+
+                    const updateLine = (clientX, clientY) => {
+                        const start = getSocketCoords(startNodeId, startType);
+                        const end = screenToWorld(clientX, clientY);
+                        const pathD = startType === 'out' 
+                            ? drawBezier(start.x, start.y, end.x, end.y)
+                            : drawBezier(end.x, end.y, start.x, start.y);
+                        tempPath.setAttribute('d', pathD);
+                    };
+
+                    updateLine(e.clientX, e.clientY);
+
+                    const onMove = (moveEvt) => updateLine(moveEvt.clientX, moveEvt.clientY);
+
+                    const onUp = (upEvt) => {
+                        document.removeEventListener('pointermove', onMove);
+                        document.removeEventListener('pointerup', onUp);
+                        document.removeEventListener('pointercancel', onUp);
+
+                        tempPath.style.display = 'none';
+                        const dropEl = document.elementFromPoint(upEvt.clientX, upEvt.clientY);
+                        tempPath.style.display = '';
+
+                        const targetHitbox = dropEl ? dropEl.closest('.socket-hitbox') : null;
+
+                        if (targetHitbox) {
+                            const targetNode = targetHitbox.dataset.node;
+                            const targetType = targetHitbox.dataset.type;
+                            if (targetNode !== startNodeId && targetType !== startType) {
+                                createEdge(startNodeId, startType, targetNode, targetType);
+                            }
+                        } else if (dropEl && (dropEl.tagName === 'BODY' || dropEl.tagName === 'CANVAS' || dropEl.id === 'workspace')) {
+                            // Автосоздание ноды
+                            const wPos = screenToWorld(upEvt.clientX, upEvt.clientY);
+                            let newX = wPos.x, newY = wPos.y - 45; 
+                            if (startType === 'out') newX = wPos.x + 30; else newX = wPos.x - 310;
+                            
+                            const newNodeId = createNode(newX, newY);
+                            const tType = startType === 'out' ? 'in' : 'out';
+                            createEdge(startNodeId, startType, newNodeId, tType);
+                        }
+
+                        tempPath.remove();
+                    };
+
+                    document.addEventListener('pointermove', onMove);
+                    document.addEventListener('pointerup', onUp);
+                    document.addEventListener('pointercancel', onUp);
+                });
+            });
+
+            // Выделение по клику (если кликнули в тело ноды)
+            nodeEl.addEventListener('pointerdown', (e) => {
+                selectNode(id);
+                e.stopPropagation();
+            });
+
+            return id;
+        }
+
+        function deleteNode(id) {
+            if (!state.nodes[id]) return;
+            resizeObserver.unobserve(state.nodes[id].el);
+            state.nodes[id].el.remove();
+            delete state.nodes[id];
+            state.edges = state.edges.filter(edge => edge.fromNode !== id && edge.toNode !== id);
+            renderEdges();
+        }
+
+        // --- ЛОГИКА СВЯЗЕЙ ---
+        function createEdge(fromNode, fromType, toNode, toType) {
+            const isDuplicate = state.edges.some(e => 
+                (e.fromNode === fromNode && e.toNode === toNode && e.fromType === fromType && e.toType === toType) ||
+                (e.fromNode === toNode && e.toNode === fromNode && e.fromType === toType && e.toType === fromType)
+            );
+            if (!isDuplicate) {
+                state.edges.push({ id: genId(), fromNode, fromType, toNode, toType });
+                renderEdges();
+            }
+        }
+
+        function getSocketCoords(nodeId, type) {
+            const node = state.nodes[nodeId];
+            if (!node) return { x: 0, y: 0 };
+            const portEl = node.el.querySelector(`.socket-hitbox.${type} .socket`);
+            if (!portEl) return { x: node.x, y: node.y };
+            const rect = portEl.getBoundingClientRect();
+            return screenToWorld(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+
+        function drawBezier(x1, y1, x2, y2) {
+            const dx = Math.abs(x2 - x1);
+            const offset = Math.max(dx * 0.4, 60); 
+            return `M ${x1} ${y1} C ${x1 + offset} ${y1}, ${x2 - offset} ${y2}, ${x2} ${y2}`;
+        }
+
+        function renderEdges() {
+            // Удаляем все постоянные линии (временная .noodle-temp остается, так как ее нет в state.edges)
+            Array.from(svgLayer.querySelectorAll('.noodle')).forEach(child => child.remove());
+            
+            state.edges.forEach(edge => {
+                let start, end;
+                if (edge.fromType === 'out') {
+                    start = getSocketCoords(edge.fromNode, 'out');
+                    end = getSocketCoords(edge.toNode, 'in');
+                } else {
+                    start = getSocketCoords(edge.toNode, 'out');
+                    end = getSocketCoords(edge.fromNode, 'in');
+                }
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', 'noodle');
+                path.setAttribute('d', drawBezier(start.x, start.y, end.x, end.y));
+                
+                path.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    state.edges = state.edges.filter(eItem => eItem.id !== edge.id);
+                    renderEdges();
+                });
+                svgLayer.appendChild(path);
+            });
+        }
+
+        // --- ГЛОБАЛЬНЫЕ СОБЫТИЯ (ПАН И ЗУМ) ---
+        let activePointers = new Map();
+        let initialPinchDist = 0, initialPinchScale = 1;
+        let lastTapTime = 0;
+        let isPanning = false;
+        let panStartX = 0, panStartY = 0;
+        let transformStartX = 0, transformStartY = 0;
+
+        document.body.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('#top-panel') || e.target.closest('.node')) return;
+            
+            activePointers.set(e.pointerId, e);
+
+            // Мультитач (Пинч зум)
+            if (activePointers.size === 2) {
+                isPanning = false;
+                const pts = Array.from(activePointers.values());
+                initialPinchDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+                initialPinchScale = state.transform.scale;
+                return;
+            }
+
+            // Двойной тап/клик для создания
+            const now = Date.now();
+            if (now - lastTapTime < 300) {
+                const wPos = screenToWorld(e.clientX, e.clientY);
+                createNode(wPos.x, wPos.y);
+                lastTapTime = 0;
+                return;
+            }
+            lastTapTime = now;
+
+            // Начало панорамирования фона
+            isPanning = true;
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+            transformStartX = state.transform.x;
+            transformStartY = state.transform.y;
+            selectNode(null);
+            
+            document.body.setPointerCapture(e.pointerId);
+        });
+
+        document.body.addEventListener('pointermove', (e) => {
+            if (activePointers.has(e.pointerId)) activePointers.set(e.pointerId, e);
+
+            // Обработка Pinch Зума
+            if (activePointers.size === 2) {
+                const pts = Array.from(activePointers.values());
+                const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+                const cx = (pts[0].clientX + pts[1].clientX) / 2;
+                const cy = (pts[0].clientY + pts[1].clientY) / 2;
+                
+                const newScale = Math.max(0.01, Math.min(initialPinchScale * (dist / initialPinchDist), 100));
+                const ratio = newScale / state.transform.scale;
+                
+                state.transform.x = cx - (cx - state.transform.x) * ratio;
+                state.transform.y = cy - (cy - state.transform.y) * ratio;
+                state.transform.scale = newScale;
+                updateTransform();
+            }
+            // Обработка Панорамирования
+            else if (isPanning && activePointers.size === 1) {
+                state.transform.x = transformStartX + (e.clientX - panStartX);
+                state.transform.y = transformStartY + (e.clientY - panStartY);
+                updateTransform();
+            }
+        });
+
+        const endGlobalPointer = (e) => {
+            activePointers.delete(e.pointerId);
+            if (activePointers.size === 0) isPanning = false;
+        };
+
+        document.body.addEventListener('pointerup', endGlobalPointer);
+        document.body.addEventListener('pointercancel', endGlobalPointer);
+
+        // Колесико мыши
+        window.addEventListener('wheel', (e) => {
+            if (e.target.tagName === 'TEXTAREA') return; 
+            e.preventDefault();
+            
+            const oldScale = state.transform.scale;
+            let newScale = oldScale * (e.deltaY > 0 ? 0.85 : 1.15);
+            newScale = Math.max(0.01, Math.min(newScale, 100)); 
+            
+            const ratio = newScale / oldScale;
+            state.transform.x = e.clientX - (e.clientX - state.transform.x) * ratio;
+            state.transform.y = e.clientY - (e.clientY - state.transform.y) * ratio;
+            state.transform.scale = newScale;
+            
+            updateTransform();
+        }, { passive: false });
+
+        window.addEventListener('resize', () => { drawGrid(); renderEdges(); });
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.code === 'Delete' || e.code === 'Backspace') && state.selectedNodeId) {
+                const activeTag = document.activeElement.tagName;
+                if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+                    deleteNode(state.selectedNodeId);
+                    state.selectedNodeId = null;
+                }
+            }
+        });
+
+        // --- КНОПКИ ПАНЕЛИ ---
+        document.getElementById('btn-focus').addEventListener('click', () => {
+            const nodeIds = Object.keys(state.nodes);
+            if (nodeIds.length === 0) {
+                state.transform = { x: window.innerWidth / 2, y: window.innerHeight / 2, scale: 1 };
+                updateTransform();
+                return;
+            }
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodeIds.forEach(id => {
+                const n = state.nodes[id];
+                const w = 280; 
+                const h = n.el.offsetHeight || 150;
+                if (n.x < minX) minX = n.x;
+                if (n.y < minY) minY = n.y;
+                if (n.x + w > maxX) maxX = n.x + w;
+                if (n.y + h > maxY) maxY = n.y + h;
+            });
+
+            const padding = 100;
+            const w = maxX - minX + padding * 2;
+            const h = maxY - minY + padding * 2;
+
+            const scaleX = window.innerWidth / w;
+            const scaleY = window.innerHeight / h;
+            let newScale = Math.min(scaleX, scaleY);
+            newScale = Math.max(0.1, Math.min(newScale, 2));
+
+            const centerX = minX + (maxX - minX) / 2;
+            const centerY = minY + (maxY - minY) / 2;
+
+            state.transform.scale = newScale;
+            state.transform.x = window.innerWidth / 2 - centerX * newScale;
+            state.transform.y = window.innerHeight / 2 - centerY * newScale;
+            updateTransform();
+        });
+
+        document.getElementById('btn-theme').addEventListener('click', () => {
+            const html = document.documentElement;
+            html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+            setTimeout(() => drawGrid(), 50); 
+        });
+
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const exportData = {
+                nodes: Object.values(state.nodes).map(n => ({
+                    id: n.id, x: Math.round(n.x), y: Math.round(n.y),
+                    title: n.el.querySelector('.node-title').value,
+                    text: n.el.querySelector('.node-textarea').value
+                })),
+                edges: state.edges
+            };
+            const a = document.createElement('a');
+            a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            a.download = "notes.json";
+            document.body.appendChild(a); a.click(); a.remove();
+        });
+
+        // --- СТАРТ ---
+        function init() {
+            state.transform.x = window.innerWidth / 2;
+            state.transform.y = window.innerHeight / 2;
+            updateTransform();
+
+            const n1 = createNode(-140, -80);
+            state.nodes[n1].el.querySelector('.node-textarea').value = "Теперь перетаскивание на телефоне работает идеально. Просто берите за шапку!";
+        }
+        init();
+    </script>
+</body>
+</html>
