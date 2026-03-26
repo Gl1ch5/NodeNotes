@@ -1,0 +1,25 @@
+/* --- ВЕРХНЯЯ ПАНЕЛЬ --- */
+#top-panel {
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--panel-border); border-radius: 12px;
+    padding: 6px; display: flex; gap: 4px; z-index: 1000;
+    box-shadow: 0 4px 24px var(--node-shadow);
+}
+
+.panel-btn {
+    background: transparent; border: none;
+    color: var(--text-main); border-radius: 8px; padding: 8px 12px;
+    cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px;
+}
+.panel-btn:hover { background: var(--btn-hover); }
+.panel-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+.panel-divider {
+    width: 1px;
+    background-color: var(--panel-border);
+    margin: 4px 0;
+}

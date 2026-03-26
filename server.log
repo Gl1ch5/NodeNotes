@@ -1,0 +1,19 @@
+127.0.0.1 - - [26/Mar/2026 06:43:05] code 404, message File not found
+127.0.0.1 - - [26/Mar/2026 06:43:05] "GET /robots.txt HTTP/1.1" 404 -
+127.0.0.1 - - [26/Mar/2026 06:43:18] "GET / HTTP/1.0" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /css/main.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /css/workspace.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /css/lab.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /css/mobile.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /css/theme.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /css/components/panel.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /css/components/node.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/core/state.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/components/node.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/lab/labManager.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/components/topPanel.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/core/workspace.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/components/edge.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Mar/2026 06:44:49] "GET /js/lab/labNodes.js HTTP/1.1" 200 -

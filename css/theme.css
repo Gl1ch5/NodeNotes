@@ -1,0 +1,44 @@
+/* --- ТЕМЫ (СТРОГИЙ ЧЕРНО-БЕЛЫЙ МИНИМАЛИЗМ) --- */
+:root[data-theme="dark"] {
+    --bg-color: #0d0d0d;
+    --grid-main: rgba(255, 255, 255, 0.15);
+    --grid-sub: rgba(255, 255, 255, 0.05);
+    --node-bg: #1a1a1a;
+    --node-border: #333333;
+    --node-shadow: rgba(0, 0, 0, 0.8);
+    --text-main: #ffffff;
+    --text-muted: #888888;
+    --wire-color: #ffffff;
+    --wire-hover: #aaaaaa;
+    --socket-color: #ffffff;
+    --socket-border: #1a1a1a;
+    --panel-bg: rgba(26, 26, 26, 0.85);
+    --panel-border: #333333;
+    --selection: #ffffff;
+    --handle-color: #666666;
+    --handle-hover: #ffffff;
+    --input-bg: #0d0d0d;
+    --btn-hover: #333333;
+}
+
+:root[data-theme="light"] {
+    --bg-color: #f0f0f0;
+    --grid-main: rgba(0, 0, 0, 0.15);
+    --grid-sub: rgba(0, 0, 0, 0.05);
+    --node-bg: #ffffff;
+    --node-border: #cccccc;
+    --node-shadow: rgba(0, 0, 0, 0.1);
+    --text-main: #000000;
+    --text-muted: #666666;
+    --wire-color: #000000;
+    --wire-hover: #666666;
+    --socket-color: #000000;
+    --socket-border: #ffffff;
+    --panel-bg: rgba(255, 255, 255, 0.85);
+    --panel-border: #cccccc;
+    --selection: #000000;
+    --handle-color: #999999;
+    --handle-hover: #000000;
+    --input-bg: #f9f9f9;
+    --btn-hover: #e0e0e0;
+}

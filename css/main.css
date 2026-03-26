@@ -1,0 +1,26 @@
+@import "theme.css";
+@import "workspace.css";
+@import "components/panel.css";
+@import "components/node.css";
+@import "lab.css";
+@import "mobile.css";
+
+/* --- БАЗОВЫЕ НАСТРОЙКИ --- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body, html {
+    width: 100vw; height: 100vh; overflow: hidden;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Inter', sans-serif;
+    /* ЖЕСТКИЙ ЗАПРЕТ СИСТЕМНЫХ ЖЕСТОВ НА МОБИЛКАХ */
+    user-select: none; -webkit-user-select: none;
+    touch-action: none !important;
+    overscroll-behavior: none;
+    transition: background-color 0.2s;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--node-border); border-radius: 10px; }

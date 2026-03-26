@@ -1,0 +1,52 @@
+/* --- ЛАБОРАТОРИЯ --- */
+#lab-view {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: var(--bg-color); z-index: 500;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+
+#lab-view.active {
+    opacity: 1; pointer-events: auto;
+}
+
+.lab-dashboard {
+    background: var(--panel-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--panel-border); border-radius: 16px;
+    padding: 30px; width: 90%; max-width: 600px;
+    box-shadow: 0 12px 32px var(--node-shadow);
+    display: flex; flex-direction: column; gap: 20px;
+}
+
+.lab-dashboard-header {
+    font-size: 24px; font-weight: 600; text-align: center;
+}
+
+.lab-module-card {
+    background: var(--node-bg); border: 1px solid var(--node-border);
+    border-radius: 12px; padding: 20px;
+    display: flex; flex-direction: column; gap: 12px;
+}
+
+.lab-module-title { font-size: 18px; font-weight: 500; }
+.lab-module-desc { font-size: 14px; color: var(--text-muted); }
+
+.lab-input, .lab-textarea {
+    width: 100%; background: var(--input-bg); color: var(--text-main);
+    border: 1px solid var(--node-border); border-radius: 8px; padding: 12px;
+    font-size: 14px; font-family: 'Inter', sans-serif; outline: none;
+    transition: border-color 0.2s;
+}
+.lab-textarea { resize: vertical; min-height: 100px; }
+.lab-input:focus, .lab-textarea:focus { border-color: var(--selection); }
+
+.lab-btn {
+    background: var(--selection); color: var(--bg-color);
+    border: none; border-radius: 8px; padding: 12px;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+    transition: opacity 0.2s; font-family: 'Inter', sans-serif;
+}
+.lab-btn:hover { opacity: 0.9; }
+.lab-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.lab-status { font-size: 13px; color: var(--text-muted); text-align: center; min-height: 20px;}
