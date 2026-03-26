@@ -17,11 +17,11 @@ function init() {
     initLab();
 
     window.addEventListener('keydown', (e) => {
-        if ((e.code === 'Delete' || e.code === 'Backspace') && state.selectedNodeId) {
+        if ((e.code === 'Delete' || e.code === 'Backspace') && state.selectedNodeIds.size > 0) {
             const activeTag = document.activeElement.tagName;
             if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
-                deleteNode(state.selectedNodeId);
-                state.selectedNodeId = null;
+                state.selectedNodeIds.forEach(id => deleteNode(id));
+                state.selectedNodeIds.clear();
             }
         }
     });

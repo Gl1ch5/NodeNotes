@@ -21,10 +21,16 @@ export function getSocketCoords(nodeId, type) {
     return screenToWorld(rect.left + rect.width / 2, rect.top + rect.height / 2);
 }
 
-export function drawBezier(x1, y1, x2, y2) {
-    const dx = Math.abs(x2 - x1);
-    const offset = Math.max(dx * 0.4, 60);
-    return `M ${x1} ${y1} C ${x1 + offset} ${y1}, ${x2 - offset} ${y2}, ${x2} ${y2}`;
+export function drawBezier(x1, y1, x2, y2, isVertical = false) {
+    if (isVertical) {
+        const dy = Math.abs(y2 - y1);
+        const offset = Math.max(dy * 0.4, 60);
+        return `M ${x1} ${y1} C ${x1} ${y1 + offset}, ${x2} ${y2 - offset}, ${x2} ${y2}`;
+    } else {
+        const dx = Math.abs(x2 - x1);
+        const offset = Math.max(dx * 0.4, 60);
+        return `M ${x1} ${y1} C ${x1 + offset} ${y1}, ${x2 - offset} ${y2}, ${x2} ${y2}`;
+    }
 }
 
 export function renderEdges() {
@@ -33,17 +39,35 @@ export function renderEdges() {
 
     state.edges.forEach(edge => {
         let start, end;
-        if (edge.fromType === 'out') {
-            start = getSocketCoords(edge.fromNode, 'out');
-            end = getSocketCoords(edge.toNode, 'in');
-        } else {
-            start = getSocketCoords(edge.toNode, 'out');
-            end = getSocketCoords(edge.fromNode, 'in');
+        start = getSocketCoords(edge.fromNode, edge.fromType);
+        end = getSocketCoords(edge.toNode, edge.toType);
+
+        let pathD = "";
+
+        // Horizontal connection (in/out)
+        if ((edge.fromType === 'out' || edge.fromType === 'in') && (edge.toType === 'in' || edge.toType === 'out')) {
+            if (edge.fromType === 'out') {
+                pathD = drawBezier(start.x, start.y, end.x, end.y);
+            } else {
+                pathD = drawBezier(end.x, end.y, start.x, start.y);
+            }
+        }
+        // Vertical connection (top/bottom)
+        else if ((edge.fromType === 'top' || edge.fromType === 'bottom') && (edge.toType === 'top' || edge.toType === 'bottom')) {
+            if (edge.fromType === 'bottom') {
+                pathD = drawBezier(start.x, start.y, end.x, end.y, true);
+            } else {
+                pathD = drawBezier(end.x, end.y, start.x, start.y, true);
+            }
+        }
+        // Mixed connection (e.g. out to top) - fallback to direct line or mixed bezier logic
+        else {
+            pathD = drawBezier(start.x, start.y, end.x, end.y);
         }
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('class', 'noodle');
-        path.setAttribute('d', drawBezier(start.x, start.y, end.x, end.y));
+        path.setAttribute('d', pathD);
 
         path.addEventListener('pointerdown', (e) => {
             e.stopPropagation();

@@ -2,17 +2,96 @@ import { state, screenToWorld, genId } from '../core/state.js';
 import { nodesContainer, svgLayer, resizeObserver } from '../core/workspace.js';
 import { renderEdges, createEdge, getSocketCoords, drawBezier } from './edge.js';
 
-export function selectNode(id) {
-    if (state.selectedNodeId && state.nodes[state.selectedNodeId]) {
-        state.nodes[state.selectedNodeId].el.classList.remove('selected');
+export function selectNode(id, multi = false) {
+    if (!multi) {
+        state.selectedNodeIds.forEach(nodeId => {
+            if (state.nodes[nodeId]) state.nodes[nodeId].el.classList.remove('selected');
+        });
+        state.selectedNodeIds.clear();
     }
-    state.selectedNodeId = id;
+
     if (id) {
-        const node = state.nodes[id];
-        node.el.classList.add('selected');
-        state.zIndexCounter++;
-        node.el.style.zIndex = state.zIndexCounter;
+        if (state.selectedNodeIds.has(id)) {
+            state.selectedNodeIds.delete(id);
+            if (state.nodes[id]) state.nodes[id].el.classList.remove('selected');
+        } else {
+            state.selectedNodeIds.add(id);
+            if (state.nodes[id]) {
+                const node = state.nodes[id];
+                node.el.classList.add('selected');
+                state.zIndexCounter++;
+                node.el.style.zIndex = state.zIndexCounter;
+            }
+        }
     }
+}
+
+export function groupSelectedNodes() {
+    if (state.selectedNodeIds.size < 2) return; // Need at least 2 nodes to group
+
+    const groupId = genId();
+    const groupNodesList = Array.from(state.selectedNodeIds);
+
+    // Calculate bounding box center
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    groupNodesList.forEach(id => {
+        const n = state.nodes[id];
+        if (n.x < minX) minX = n.x;
+        if (n.y < minY) minY = n.y;
+        if (n.x + 280 > maxX) maxX = n.x + 280; // approximate width
+        if (n.y + 150 > maxY) maxY = n.y + 150; // approximate height
+    });
+    const centerX = minX + (maxX - minX) / 2;
+    const centerY = minY + (maxY - minY) / 2;
+
+    // Save actual DOM elements and their logic into the state.groups
+    state.groups[groupId] = {
+        nodes: groupNodesList.map(id => {
+            const n = state.nodes[id];
+            n.el.style.display = 'none'; // hide original nodes
+            return n;
+        })
+    };
+
+    // Clear selection
+    selectNode(null);
+
+    // Create the Group Node
+    const newGroupNodeId = createNode(centerX - 140, centerY - 75);
+    const groupNode = state.nodes[newGroupNodeId];
+    groupNode.el.classList.add('group-node');
+    groupNode.el.querySelector('.node-title').value = "Новая Группа";
+    groupNode.el.querySelector('.node-textarea').value = `Содержит ${groupNodesList.length} нод(ы). Нажмите 'Разгруппировать' чтобы извлечь их.`;
+    groupNode.el.querySelector('.node-textarea').readOnly = true;
+
+    // Replace the delete button logic to just ungroup for this specific group node, or add an ungroup button
+    const header = groupNode.el.querySelector('.node-header');
+
+    const ungroupBtn = document.createElement('button');
+    ungroupBtn.className = 'node-delete-btn';
+    ungroupBtn.title = 'Разгруппировать';
+    ungroupBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>`;
+
+    ungroupBtn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+
+        // Restore original nodes
+        state.groups[groupId].nodes.forEach(n => {
+            n.el.style.display = '';
+            // Offset them slightly from the group node's current position
+            n.x = groupNode.x + (Math.random() * 40 - 20);
+            n.y = groupNode.y + (Math.random() * 40 - 20);
+            n.el.style.left = `${n.x}px`;
+            n.el.style.top = `${n.y}px`;
+        });
+
+        delete state.groups[groupId];
+        deleteNode(newGroupNodeId);
+        renderEdges();
+    });
+
+    header.insertBefore(ungroupBtn, header.lastElementChild);
+    renderEdges();
 }
 
 export function createNode(worldX, worldY) {
@@ -35,9 +114,11 @@ export function createNode(worldX, worldY) {
             <button class="node-delete-btn" title="Удалить ноду">${trashIcon}</button>
         </div>
         <div class="node-body">
-            <div class="socket-hitbox in" data-node="${id}" data-type="in"><div class="socket"></div></div>
+            <div class="socket-hitbox top" data-node="${id}" data-type="top" title="Свойство / Ветка"><div class="socket"></div></div>
+            <div class="socket-hitbox in" data-node="${id}" data-type="in" title="Вход"><div class="socket"></div></div>
             <textarea class="node-textarea" placeholder="Дважды тапните по фону..."></textarea>
-            <div class="socket-hitbox out" data-node="${id}" data-type="out"><div class="socket"></div></div>
+            <div class="socket-hitbox out" data-node="${id}" data-type="out" title="Выход"><div class="socket"></div></div>
+            <div class="socket-hitbox bottom" data-node="${id}" data-type="bottom" title="Детали / Свойства"><div class="socket"></div></div>
         </div>
     `;
 
@@ -61,7 +142,7 @@ export function createNode(worldX, worldY) {
         e.preventDefault(); // Останавливаем скролл телефона
         e.stopPropagation(); // Останавливаем панорамирование фона
 
-        selectNode(id);
+        selectNode(id, e.shiftKey || e.ctrlKey || e.metaKey);
         const node = state.nodes[id];
 
         // Фиксируем разницу между кликом и левым верхним углом ноды
@@ -108,9 +189,19 @@ export function createNode(worldX, worldY) {
             const updateLine = (clientX, clientY) => {
                 const start = getSocketCoords(startNodeId, startType);
                 const end = screenToWorld(clientX, clientY);
-                const pathD = startType === 'out'
-                    ? drawBezier(start.x, start.y, end.x, end.y)
-                    : drawBezier(end.x, end.y, start.x, start.y);
+                let pathD = "";
+
+                if (startType === 'out' || startType === 'in') {
+                    pathD = startType === 'out'
+                        ? drawBezier(start.x, start.y, end.x, end.y)
+                        : drawBezier(end.x, end.y, start.x, start.y);
+                } else {
+                    // Вертикальные кривые для top/bottom
+                    pathD = startType === 'bottom'
+                        ? drawBezier(start.x, start.y, end.x, end.y, true)
+                        : drawBezier(end.x, end.y, start.x, start.y, true);
+                }
+
                 tempPath.setAttribute('d', pathD);
             };
 
@@ -132,17 +223,22 @@ export function createNode(worldX, worldY) {
                 if (targetHitbox) {
                     const targetNode = targetHitbox.dataset.node;
                     const targetType = targetHitbox.dataset.type;
-                    if (targetNode !== startNodeId && targetType !== startType) {
+
+                    if (targetNode !== startNodeId) {
                         createEdge(startNodeId, startType, targetNode, targetType);
                     }
                 } else if (dropEl && (dropEl.tagName === 'BODY' || dropEl.tagName === 'CANVAS' || dropEl.id === 'workspace')) {
                     // Автосоздание ноды
                     const wPos = screenToWorld(upEvt.clientX, upEvt.clientY);
                     let newX = wPos.x, newY = wPos.y - 45;
-                    if (startType === 'out') newX = wPos.x + 30; else newX = wPos.x - 310;
+                    let tType = 'in';
+
+                    if (startType === 'out') { newX = wPos.x + 30; tType = 'in'; }
+                    else if (startType === 'in') { newX = wPos.x - 310; tType = 'out'; }
+                    else if (startType === 'bottom') { newY = wPos.y + 30; newX = wPos.x - 140; tType = 'top'; }
+                    else if (startType === 'top') { newY = wPos.y - 200; newX = wPos.x - 140; tType = 'bottom'; }
 
                     const newNodeId = createNode(newX, newY);
-                    const tType = startType === 'out' ? 'in' : 'out';
                     createEdge(startNodeId, startType, newNodeId, tType);
                 }
 
@@ -157,7 +253,7 @@ export function createNode(worldX, worldY) {
 
     // Выделение по клику (если кликнули в тело ноды)
     nodeEl.addEventListener('pointerdown', (e) => {
-        selectNode(id);
+        selectNode(id, e.shiftKey || e.ctrlKey || e.metaKey);
         e.stopPropagation();
     });
 

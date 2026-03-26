@@ -4,6 +4,37 @@ import { createNode } from '../../components/node.js';
 export function initStoryModule() {
     const btnModuleStory = document.getElementById('btn-module-story');
     const aiStatusStory = document.getElementById('ai-status-story');
+    const btnFetchModels = document.getElementById('btn-fetch-models');
+    const modelSelect = document.getElementById('model-select');
+
+    btnFetchModels.addEventListener('click', async () => {
+        const apiKey = document.getElementById('api-key').value.trim();
+        if (!apiKey) {
+            alert('Введите API Key для загрузки моделей');
+            return;
+        }
+
+        try {
+            btnFetchModels.textContent = '...';
+            const res = await fetch('https://api.groq.com/openai/v1/models', {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            if (!res.ok) throw new Error('Ошибка при загрузке моделей');
+            const data = await res.json();
+
+            modelSelect.innerHTML = '';
+            data.data.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.id;
+                modelSelect.appendChild(opt);
+            });
+        } catch(e) {
+            alert(e.message);
+        } finally {
+            btnFetchModels.textContent = 'Загрузить';
+        }
+    });
 
     btnModuleStory.addEventListener('click', async () => {
         const apiKey = document.getElementById('api-key').value.trim();
@@ -33,7 +64,7 @@ export function initStoryModule() {
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: "llama3-8b-8192",
+                    model: modelSelect.value || "llama3-8b-8192",
                     messages: [
                         { role: "system", content: "You are a creative writer integrated into a laboratory tool. You take multiple disconnected notes and weave them into a cohesive story." },
                         { role: "user", content: fullPrompt }
