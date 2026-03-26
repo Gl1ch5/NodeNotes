@@ -139,38 +139,55 @@ export function createNode(worldX, worldY) {
         // Если кликнули в текстовое поле или кнопку удаления - не тащим
         if (e.target.tagName === 'INPUT' || e.target.closest('.node-delete-btn')) return;
 
+        // Только для левой кнопки мыши или тача
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+
         e.preventDefault(); // Останавливаем скролл телефона
         e.stopPropagation(); // Останавливаем панорамирование фона
 
         selectNode(id, e.shiftKey || e.ctrlKey || e.metaKey);
-        const node = state.nodes[id];
 
-        // Фиксируем разницу между кликом и левым верхним углом ноды
+        // Захват указателя для надежного перетаскивания на мобилках
+        header.setPointerCapture(e.pointerId);
+
+        // Фиксируем смещение для всех выделенных нод
         const startWorld = screenToWorld(e.clientX, e.clientY);
-        const offsetX = startWorld.x - node.x;
-        const offsetY = startWorld.y - node.y;
 
-        // Функция движения (локальная для этого перетаскивания)
+        // Сохраняем начальные позиции всех выделенных нод, чтобы тащить их вместе
+        const selectedNodesOffsets = [];
+        state.selectedNodeIds.forEach(nodeId => {
+            const n = state.nodes[nodeId];
+            if (n) {
+                selectedNodesOffsets.push({
+                    node: n,
+                    offsetX: startWorld.x - n.x,
+                    offsetY: startWorld.y - n.y
+                });
+            }
+        });
+
         const onMove = (moveEvent) => {
             const currentWorld = screenToWorld(moveEvent.clientX, moveEvent.clientY);
-            node.x = currentWorld.x - offsetX;
-            node.y = currentWorld.y - offsetY;
-            node.el.style.left = `${node.x}px`;
-            node.el.style.top = `${node.y}px`;
+
+            selectedNodesOffsets.forEach(({node, offsetX, offsetY}) => {
+                node.x = currentWorld.x - offsetX;
+                node.y = currentWorld.y - offsetY;
+                node.el.style.left = `${node.x}px`;
+                node.el.style.top = `${node.y}px`;
+            });
             renderEdges();
         };
 
-        // Функция отпускания
-        const onUp = () => {
-            document.removeEventListener('pointermove', onMove);
-            document.removeEventListener('pointerup', onUp);
-            document.removeEventListener('pointercancel', onUp);
+        const onUp = (upEvent) => {
+            header.releasePointerCapture(upEvent.pointerId);
+            header.removeEventListener('pointermove', onMove);
+            header.removeEventListener('pointerup', onUp);
+            header.removeEventListener('pointercancel', onUp);
         };
 
-        // Вешаем слушатели на документ, чтобы не терять курсор/палец
-        document.addEventListener('pointermove', onMove);
-        document.addEventListener('pointerup', onUp);
-        document.addEventListener('pointercancel', onUp);
+        header.addEventListener('pointermove', onMove);
+        header.addEventListener('pointerup', onUp);
+        header.addEventListener('pointercancel', onUp);
     });
 
     // ИЗОЛИРОВАННАЯ ЛОГИКА РИСОВАНИЯ СВЯЗЕЙ
@@ -253,8 +270,10 @@ export function createNode(worldX, worldY) {
 
     // Выделение по клику (если кликнули в тело ноды)
     nodeEl.addEventListener('pointerdown', (e) => {
-        selectNode(id, e.shiftKey || e.ctrlKey || e.metaKey);
-        e.stopPropagation();
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            selectNode(id, e.shiftKey || e.ctrlKey || e.metaKey);
+            e.stopPropagation();
+        }
     });
 
     return id;

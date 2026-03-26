@@ -28,6 +28,37 @@ export function initLabNodes() {
     const btnInput = document.getElementById('btn-add-input-node');
     const btnStory = document.getElementById('btn-add-story-node');
     const modUpload = document.getElementById('lab-mod-upload');
+    const btnFetchModels = document.getElementById('btn-fetch-models');
+    const modelSelect = document.getElementById('lab-model-select');
+
+    btnFetchModels.addEventListener('click', async () => {
+        const apiKey = document.getElementById('lab-api-key').value.trim();
+        if (!apiKey) {
+            alert('Введите API Key для загрузки моделей');
+            return;
+        }
+
+        try {
+            btnFetchModels.textContent = '...';
+            const res = await fetch('https://api.groq.com/openai/v1/models', {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            if (!res.ok) throw new Error('Ошибка при загрузке моделей');
+            const data = await res.json();
+
+            modelSelect.innerHTML = '';
+            data.data.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.id;
+                modelSelect.appendChild(opt);
+            });
+        } catch(e) {
+            alert(e.message);
+        } finally {
+            btnFetchModels.textContent = 'Загрузить Модели';
+        }
+    });
 
     // Make menu visible only when active class is present
     const observer = new MutationObserver(() => {
@@ -85,11 +116,12 @@ export function initLabNodes() {
                 const prompt = `Task: Create a cohesive story based on the following notes.\n\nNotes:\n${inputNotes}`;
 
                 try {
+                    const selectedModel = document.getElementById('lab-model-select').value || "llama3-8b-8192";
                     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                         body: JSON.stringify({
-                            model: "llama3-8b-8192",
+                            model: selectedModel,
                             messages: [{ role: "user", content: prompt }]
                         })
                     });

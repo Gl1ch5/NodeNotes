@@ -56,8 +56,11 @@ let panStartX = 0, panStartY = 0;
 let transformStartX = 0, transformStartY = 0;
 
 export function initWorkspaceEvents() {
-    document.body.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('#top-panel') || e.target.closest('.node') || e.target.closest('#lab-view')) return;
+    // Используем #workspace для событий, чтобы не блокировать интерфейс
+    document.getElementById('workspace').addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.node')) return;
+
+        e.preventDefault(); // Защита от скролла страницы на мобилках
 
         activePointers.set(e.pointerId, e);
 
@@ -88,10 +91,13 @@ export function initWorkspaceEvents() {
         transformStartY = state.transform.y;
         selectNode(null);
 
-        document.body.setPointerCapture(e.pointerId);
+        document.getElementById('workspace').setPointerCapture(e.pointerId);
     });
 
-    document.body.addEventListener('pointermove', (e) => {
+    document.getElementById('workspace').addEventListener('pointermove', (e) => {
+        if (!isPanning && activePointers.size < 2) return;
+        e.preventDefault(); // Защита от скролла страницы на мобилках
+
         if (activePointers.has(e.pointerId)) activePointers.set(e.pointerId, e);
 
         // Обработка Pinch Зума
@@ -122,8 +128,8 @@ export function initWorkspaceEvents() {
         if (activePointers.size === 0) isPanning = false;
     };
 
-    document.body.addEventListener('pointerup', endGlobalPointer);
-    document.body.addEventListener('pointercancel', endGlobalPointer);
+    document.getElementById('workspace').addEventListener('pointerup', endGlobalPointer);
+    document.getElementById('workspace').addEventListener('pointercancel', endGlobalPointer);
 
     // Колесико мыши
     window.addEventListener('wheel', (e) => {

@@ -38,6 +38,15 @@ export function renderEdges() {
     Array.from(svgLayer.querySelectorAll('.noodle')).forEach(child => child.remove());
 
     state.edges.forEach(edge => {
+        const fromNode = state.nodes[edge.fromNode];
+        const toNode = state.nodes[edge.toNode];
+
+        // Hide edges if either connected node is grouped (hidden)
+        if ((fromNode && fromNode.el.style.display === 'none') ||
+            (toNode && toNode.el.style.display === 'none')) {
+            return;
+        }
+
         let start, end;
         start = getSocketCoords(edge.fromNode, edge.fromType);
         end = getSocketCoords(edge.toNode, edge.toType);
@@ -65,9 +74,16 @@ export function renderEdges() {
             pathD = drawBezier(start.x, start.y, end.x, end.y);
         }
 
+        const isDetailProp = (edge.fromType === 'top' || edge.fromType === 'bottom' || edge.toType === 'top' || edge.toType === 'bottom');
+
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('class', 'noodle');
         path.setAttribute('d', pathD);
+
+        if (isDetailProp) {
+            path.setAttribute('stroke-dasharray', '8,4');
+            path.style.stroke = 'var(--text-muted)';
+        }
 
         path.addEventListener('pointerdown', (e) => {
             e.stopPropagation();
