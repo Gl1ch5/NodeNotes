@@ -58,7 +58,7 @@ let transformStartX = 0, transformStartY = 0;
 export function initWorkspaceEvents() {
     // Используем #workspace для событий, чтобы не блокировать интерфейс
     document.getElementById('workspace').addEventListener('pointerdown', (e) => {
-        if (e.target.closest('.node')) return;
+        if (e.target.closest('.node') && e.button !== 1) return;
 
         e.preventDefault(); // Защита от скролла страницы на мобилках
 

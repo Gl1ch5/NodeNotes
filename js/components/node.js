@@ -136,6 +136,7 @@ export function createNode(worldX, worldY) {
     // ИЗОЛИРОВАННАЯ ЛОГИКА ПЕРЕТАСКИВАНИЯ НОДЫ
     const header = nodeEl.querySelector('.node-header');
     header.addEventListener('pointerdown', (e) => {
+        if (e.button === 1) return; // Allow middle click to bubble up for workspace panning
         // Если кликнули в текстовое поле или кнопку удаления - не тащим
         if (e.target.tagName === 'INPUT' || e.target.closest('.node-delete-btn')) return;
 
@@ -270,6 +271,7 @@ export function createNode(worldX, worldY) {
 
     // Выделение по клику (если кликнули в тело ноды)
     nodeEl.addEventListener('pointerdown', (e) => {
+        if (e.button === 1) return; // Allow middle click to bubble up for workspace panning
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
             selectNode(id, e.shiftKey || e.ctrlKey || e.metaKey);
             e.stopPropagation();
