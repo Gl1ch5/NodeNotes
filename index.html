@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Современные Ноды</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
@@ -39,22 +39,28 @@
         <div id="nodes-container"></div>
     </div>
 
-    <!-- Лаборатория (боковая панель) -->
-    <div id="lab-panel">
-        <div class="lab-header">Лаборатория ИИ</div>
-        <div class="lab-content">
+    <!-- Лаборатория (отдельный экран) -->
+    <div id="lab-view">
+        <div class="lab-dashboard">
+            <div class="lab-dashboard-header">Лаборатория ИИ</div>
+
             <label class="lab-label" for="api-key">Groq API Key</label>
             <input type="password" id="api-key" class="lab-input" placeholder="gsk_...">
 
-            <label class="lab-label" for="ai-prompt">Промпт / Задача</label>
-            <textarea id="ai-prompt" class="lab-textarea" placeholder="Что сделать с выбранной последовательностью нод? (например: 'сделай из этого историю' или 'дополни детали')"></textarea>
+            <!-- Модули Лаборатории -->
+            <div id="lab-modules-container">
+                <!-- Сюжетный Модуль -->
+                <div class="lab-module-card">
+                    <div class="lab-module-title">Создание сюжета</div>
+                    <div class="lab-module-desc">Генерирует связный рассказ на основе всех созданных нод в проекте.</div>
+                    <button id="btn-module-story" class="lab-btn">Запустить модуль</button>
+                    <div id="ai-status-story" class="lab-status"></div>
+                </div>
+            </div>
 
-            <button id="btn-run-ai" class="lab-btn">Запустить</button>
-
-            <div id="ai-status" class="lab-status"></div>
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

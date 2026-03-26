@@ -1,0 +1,23 @@
+/* --- СЕТКА И ХОЛСТ --- */
+#grid-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+#workspace {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1; transform-origin: 0 0; pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+#workspace.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* --- ЛИНИИ (SVG) --- */
+#svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+
+.noodle {
+    fill: none; stroke: var(--wire-color); stroke-width: 3px;
+    pointer-events: auto; cursor: pointer; transition: stroke-width 0.1s, stroke 0.1s;
+}
+.noodle:hover { stroke-width: 6px; stroke: var(--wire-hover); }
+.noodle-temp { fill: none; stroke: var(--wire-color); stroke-width: 3px; stroke-dasharray: 6 6; pointer-events: none; opacity: 0.5; }

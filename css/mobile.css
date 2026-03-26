@@ -1,0 +1,66 @@
+/* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */
+@media (max-width: 768px) {
+    #top-panel {
+        top: 10px;
+        width: 95%;
+        padding: 4px;
+        gap: 2px;
+        justify-content: space-between;
+    }
+
+    .panel-btn {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .panel-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .panel-divider {
+        margin: 2px 0;
+    }
+
+    #mode-text {
+        display: none; /* Прячем текст на мобильных, оставляем иконку */
+    }
+
+    .lab-dashboard {
+        width: 95%;
+        padding: 20px;
+        gap: 15px;
+    }
+
+    .lab-dashboard-header {
+        font-size: 20px;
+    }
+
+    .lab-module-title {
+        font-size: 16px;
+    }
+
+    .lab-module-desc {
+        font-size: 12px;
+    }
+
+    .node {
+        min-width: 240px;
+    }
+
+    .node-title {
+        font-size: 14px;
+    }
+
+    .node-textarea {
+        font-size: 13px;
+    }
+
+    .socket-hitbox {
+        width: 50px;
+        height: 50px; /* Еще больше зона нажатия для пальцев на мобилке */
+    }
+
+    .socket-hitbox.in { left: -25px; }
+    .socket-hitbox.out { right: -25px; }
+}
